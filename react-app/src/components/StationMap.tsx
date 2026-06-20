@@ -11,27 +11,29 @@ import type { LayerState } from './MapLayersControl';
 
 // ---- Custom marker icon (SVG shield + flame), ported from the prototype ----
 const markerSvg = `
-<svg viewBox="0 0 36 44" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 34 42" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#ff6a3d"/>
       <stop offset="100%" stop-color="#a32a10"/>
     </linearGradient>
   </defs>
-  <path d="M18 0 C8 0 1 7 1 16 C1 27 18 44 18 44 C18 44 35 27 35 16 C35 7 28 0 18 0 Z"
-        fill="url(#g)" stroke="#ffffff" stroke-width="1.5"/>
-  <circle cx="18" cy="16" r="10" fill="#1a1614" opacity="0.25"/>
-  <path d="M18 8 C18 8 14.5 11 14.5 14.5 C14.5 17 16 18.5 18 18.5 C20 18.5 21.5 17 21.5 14.5 C21.5 13 20.5 12 19.5 11 C18.7 10.2 18.5 9.5 18.5 8.5 C18.5 8.5 17.7 9.2 17.7 10 C17.7 10.7 18 11.4 18 11.4 C18 11.4 17 10.8 16.5 10 C16.3 10.7 16.5 11.5 17 12 C17.3 12.3 17.5 12.6 17.5 13 C17.5 13.5 17 14 17 14 C17 14 18 13.7 18.5 13 C19 12.3 19 11.5 19 11.5 C19 11.5 19.5 12.2 19.5 13 C19.5 13.7 19 14.3 18 14.5 C18.5 14.7 19 15 19 15.4"
-        fill="#fff"/>
+  <!-- pointer stem -->
+  <path d="M17 41 L11 27 A14 14 0 1 1 23 27 Z" fill="url(#g)"/>
+  <!-- badge circle -->
+  <circle cx="17" cy="15" r="13.5" fill="url(#g)" stroke="#ffffff" stroke-width="2"/>
+  <!-- Maltese cross -->
+  <path d="M0,-2.4 L-8.55,-9 L0,-5.22 L8.55,-9 L2.4,-2.4 L9,-8.55 L5.22,0 L9,8.55 L2.4,2.4 L8.55,9 L0,5.22 L-8.55,9 L-2.4,2.4 L-9,8.55 L-5.22,0 L-9,-8.55 Z"
+        fill="#ffffff" transform="translate(17,15) scale(0.95)"/>
 </svg>`;
 
 const stationIcon = L.divIcon({
   className: 'station-marker',
   html: markerSvg,
-  iconSize: [36, 44],
-  iconAnchor: [18, 44],
-  tooltipAnchor: [0, -38],
-  popupAnchor: [0, -42],
+  iconSize: [34, 42],
+  iconAnchor: [17, 41],
+  tooltipAnchor: [0, -34],
+  popupAnchor: [0, -38],
 });
 
 const popupBtnSvg = (
