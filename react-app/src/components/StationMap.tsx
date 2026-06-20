@@ -5,6 +5,8 @@ import type { Station } from '../types/station';
 import { gmapsUrl } from '../lib';
 import YouAreHere from './YouAreHere';
 import type { Jurisdiction } from '../geo';
+import BoundaryLayers from './BoundaryLayers';
+import type { LayerState } from './MapLayersControl';
 
 // ---- Custom marker icon (SVG shield + flame), ported from the prototype ----
 const markerSvg = `
@@ -70,6 +72,7 @@ interface Props {
   youPosition: { lat: number; lon: number } | null;
   youJurisdiction: Jurisdiction | null;
   youFlyTick: number;
+  layers: LayerState;
 }
 
 export default function StationMap({
@@ -80,6 +83,7 @@ export default function StationMap({
   youPosition,
   youJurisdiction,
   youFlyTick,
+  layers,
 }: Props) {
   const mapRef = useRef<L.Map | null>(null);
 
@@ -105,6 +109,10 @@ export default function StationMap({
         maxZoom={19}
       />
       <FitBounds stations={stations} />
+      <BoundaryLayers
+        showMunicipalities={layers.municipalities}
+        showTownships={layers.townships}
+      />
       <MapBridge
         registerMap={(m) => {
           mapRef.current = m;

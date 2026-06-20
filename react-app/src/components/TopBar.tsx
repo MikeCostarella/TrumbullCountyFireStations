@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import type { LayerState } from './MapLayersControl';
 
 export type ViewId = 'map' | 'list';
 
@@ -20,9 +21,11 @@ interface Props {
   onSelect: (id: ViewId) => void;
   open: boolean;
   onToggle: (open: boolean) => void;
+  layers: LayerState;
+  onLayersChange: (next: LayerState) => void;
 }
 
-export default function TopBar({ active, onSelect, open, onToggle }: Props) {
+export default function TopBar({ active, onSelect, open, onToggle, layers, onLayersChange }: Props) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -89,6 +92,28 @@ export default function TopBar({ active, onSelect, open, onToggle }: Props) {
               );
             })}
           </ul>
+        </div>
+
+        <div className="drawer-group">
+          <div className="drawer-group-title">Boundaries</div>
+          <label className="drawer-check">
+            <input
+              type="checkbox"
+              checked={layers.municipalities}
+              onChange={() => onLayersChange({ ...layers, municipalities: !layers.municipalities })}
+            />
+            <span className="drawer-swatch drawer-swatch-muni" aria-hidden="true" />
+            <span className="drawer-check-label">Municipalities</span>
+          </label>
+          <label className="drawer-check">
+            <input
+              type="checkbox"
+              checked={layers.townships}
+              onChange={() => onLayersChange({ ...layers, townships: !layers.townships })}
+            />
+            <span className="drawer-swatch drawer-swatch-town" aria-hidden="true" />
+            <span className="drawer-check-label">Townships</span>
+          </label>
         </div>
 
         <div className="drawer-group">

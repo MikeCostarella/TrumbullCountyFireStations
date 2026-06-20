@@ -11,6 +11,7 @@ import StationSearch from './components/StationSearch';
 import StationMap from './components/StationMap';
 import StationList from './components/StationList';
 import LocateControl from './components/LocateControl';
+import type { LayerState } from './components/MapLayersControl';
 
 const STATIONS = stationsData as Station[];
 
@@ -22,6 +23,7 @@ export default function App() {
   );
   const [invalidateTick, setInvalidateTick] = useState(0);
   const [youFlyTick, setYouFlyTick] = useState(0);
+  const [layers, setLayers] = useState<LayerState>({ municipalities: true, townships: true });
 
   const mapRef = useRef<L.Map | null>(null);
   const markerRefs = useRef<Record<string, L.Marker>>({});
@@ -78,7 +80,14 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <TopBar active={view} onSelect={setView} open={menuOpen} onToggle={setMenuOpen} />
+      <TopBar
+        active={view}
+        onSelect={setView}
+        open={menuOpen}
+        onToggle={setMenuOpen}
+        layers={layers}
+        onLayersChange={setLayers}
+      />
 
       <div className="view-pane" style={{ display: view === 'map' ? 'block' : 'none' }}>
         <TitleBar
@@ -98,6 +107,7 @@ export default function App() {
             youPosition={youPosition}
             youJurisdiction={youJurisdiction}
             youFlyTick={youFlyTick}
+            layers={layers}
           />
         </div>
       </div>
