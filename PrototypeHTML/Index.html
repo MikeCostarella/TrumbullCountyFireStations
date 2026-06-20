@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Trumbull County Fire Stations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+:root {
+  --bg: #f4ede2;
+  --panel: #ffffff;
+  --panel-2: #f7f0e4;
+  --ink: #1f1a17;
+  --ink-soft: #2c2522;
+  --ink-dim: #6b605a;
+  --rule: #e0d5c4;
+  --rule-strong: #c8b89f;
+  --ember: #d23b1c;
+  --ember-glow: #ff6a3d;
+  --ember-deep: #a32a10;
+  --gold: #b8862e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; width: 100%; overflow: hidden; }
+body {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Title bar ---------- */
+.titlebar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  background: linear-gradient(180deg, rgba(255,251,243,0.97) 0%, rgba(255,251,243,0.92) 100%);
+  border-bottom: 1px solid var(--rule);
+  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  box-shadow: 0 6px 20px rgba(60,40,20,0.12), 0 1px 0 rgba(255,255,255,0.6) inset;
+  transition: max-height 0.45s cubic-bezier(.2,.8,.2,1);
+  max-height: 240px;
+  overflow: hidden;
+}
+.titlebar.collapsed { max-height: 52px; }
+
+.titlebar-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 22px;
+  height: 52px;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+.titlebar:not(.collapsed) .titlebar-row { border-bottom-color: var(--rule); }
+
+.brand-mark {
+  width: 30px; height: 30px;
+  flex-shrink: 0;
+  display: grid; place-items: center;
+  background: var(--ember);
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 2px 8px rgba(210,59,28,0.35);
+}
+.brand-mark svg { width: 18px; height: 18px; fill: #fff; }
+
+.title-block { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1; }
+.eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toggle-btn {
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--ink-dim);
+  width: 34px; height: 34px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: grid; place-items: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.toggle-btn:hover { color: var(--ember); border-color: var(--ember); background: rgba(210,59,28,0.06); }
+.toggle-btn svg { width: 14px; height: 14px; transition: transform 0.4s cubic-bezier(.2,.8,.2,1); }
+.titlebar.collapsed .toggle-btn svg { transform: rotate(180deg); }
+
+.titlebar-body {
+  padding: 14px 22px 14px 22px;
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.subtitle {
+  flex: 1 1 320px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 580px;
+}
+.subtitle strong { color: var(--ink); font-weight: 600; }
+
+.stats { display: flex; gap: 22px; }
+.stat {
+  display: flex;
+  flex-direction: column;
+  border-left: 2px solid var(--ember);
+  padding-left: 12px;
+  min-width: 60px;
+}
+.stat-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  line-height: 1;
+}
+.stat-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  margin-top: 5px;
+}
+
+.titlebar-meta {
+  border-top: 1px dashed var(--rule);
+  padding: 8px 22px 9px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+.titlebar-meta .meta-author { color: var(--ink-soft); }
+.titlebar-meta .meta-author strong {
+  color: var(--ember);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+}
+.titlebar-meta .meta-time { letter-spacing: 0.10em; }
+
+/* ---------- Search ---------- */
+.search-wrap {
+  position: absolute;
+  top: 68px;
+  right: 16px;
+  z-index: 900;
+  transition: top 0.45s cubic-bezier(.2,.8,.2,1);
+}
+.titlebar:not(.collapsed) ~ .search-wrap { top: 252px; }
+.search {
+  display: flex;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(60,30,10,0.18), 0 1px 0 rgba(255,255,255,0.6) inset;
+  height: 40px;
+  width: 40px;
+  overflow: hidden;
+  transition: width 0.32s cubic-bezier(.2,.8,.2,1), box-shadow 0.2s, border-color 0.2s;
+}
+.search:focus-within,
+.search.open {
+  width: 320px;
+  border-color: var(--ember);
+  box-shadow: 0 6px 18px rgba(210,59,28,0.22), 0 0 0 3px rgba(210,59,28,0.12);
+}
+.search-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--ink-dim);
+  background: transparent;
+  border: none;
+  transition: color 0.2s;
+}
+.search:focus-within .search-icon,
+.search.open .search-icon { color: var(--ember); }
+.search-icon svg { width: 16px; height: 16px; }
+.search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  padding: 0 4px 0 0;
+}
+.search-input::placeholder { color: var(--ink-dim); }
+.search-clear {
+  width: 32px;
+  height: 32px;
+  margin-right: 4px;
+  flex-shrink: 0;
+  display: none;
+  place-items: center;
+  cursor: pointer;
+  color: var(--ink-dim);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  transition: color 0.15s, background 0.15s;
+}
+.search-clear:hover { color: var(--ember); background: rgba(210,59,28,0.08); }
+.search-clear svg { width: 12px; height: 12px; }
+.search.has-value .search-clear { display: grid; }
+
+.search-results {
+  position: absolute;
+  top: 48px;
+  right: 0;
+  width: 320px;
+  max-height: min(420px, calc(100vh - 140px));
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  box-shadow: 0 18px 36px rgba(60,30,10,0.22);
+  display: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+}
+.search-results.open { display: block; }
+.search-results::-webkit-scrollbar { width: 8px; }
+.search-results::-webkit-scrollbar-thumb { background: var(--rule-strong); border-radius: 4px; }
+
+.result-meta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  padding: 10px 14px 6px 14px;
+  border-bottom: 1px dashed var(--rule);
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+}
+.result-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  padding: 10px 14px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s;
+}
+.result-item:last-child { border-bottom: none; }
+.result-item:hover, .result-item:focus {
+  background: rgba(210,59,28,0.06);
+  outline: none;
+}
+.result-item:focus { background: rgba(210,59,28,0.10); }
+.result-station {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px;
+  letter-spacing: 0.05em;
+  color: var(--ember-deep);
+  margin-bottom: 2px;
+  line-height: 1.1;
+}
+.result-dept {
+  font-size: 12px;
+  color: var(--ink);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.result-addr {
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+.result-item mark {
+  background: rgba(255,200,80,0.55);
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+.result-empty {
+  padding: 18px 14px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  text-align: center;
+}
+
+/* ---------- Map ---------- */
+#map {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+}
+.leaflet-container {
+  background: #e9e0d0;
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+.leaflet-control-attribution {
+  background: rgba(255,251,243,0.92) !important;
+  color: var(--ink-dim) !important;
+  font-size: 10px !important;
+  padding: 3px 8px !important;
+  border-radius: 3px 0 0 0;
+}
+.leaflet-control-attribution a { color: var(--ember-deep) !important; }
+.leaflet-control-zoom a {
+  background: var(--panel) !important;
+  color: var(--ink) !important;
+  border-color: var(--rule-strong) !important;
+}
+.leaflet-control-zoom a:hover {
+  background: var(--panel-2) !important;
+  color: var(--ember) !important;
+}
+
+/* ---------- Custom marker ---------- */
+.station-marker {
+  width: 36px;
+  height: 44px;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(.2,.8,.2,1), filter 0.18s;
+  filter: drop-shadow(0 3px 5px rgba(60,30,10,0.4));
+}
+.station-marker:hover {
+  transform: translateY(-3px) scale(1.08);
+  filter: drop-shadow(0 6px 12px rgba(210,59,28,0.55)) drop-shadow(0 0 14px rgba(255,106,61,0.35));
+  z-index: 10000 !important;
+}
+.station-marker svg { width: 100%; height: 100%; display: block; }
+
+/* ---------- Tooltip ---------- */
+.leaflet-tooltip.station-tooltip {
+  background: rgba(255,251,243,0.98);
+  border: 1px solid var(--ember);
+  color: var(--ink);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 6px 18px rgba(60,30,10,0.25);
+  white-space: nowrap;
+}
+.leaflet-tooltip.station-tooltip::before { display: none; }
+.tooltip-dept {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  color: var(--ember-deep);
+  margin-bottom: 2px;
+}
+.tooltip-station {
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+
+/* ---------- Popup ---------- */
+.leaflet-popup-content-wrapper {
+  background: var(--panel);
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  padding: 0;
+  box-shadow: 0 18px 40px rgba(60,30,10,0.25), 0 0 0 1px rgba(210,59,28,0.1);
+}
+.leaflet-popup-content { margin: 0 !important; width: 290px !important; }
+.leaflet-popup-tip { background: var(--panel); border: 1px solid var(--rule-strong); }
+.leaflet-popup-close-button {
+  color: var(--ink-dim) !important;
+  font-size: 22px !important;
+  padding: 6px 9px !important;
+  transition: color 0.2s;
+}
+.leaflet-popup-close-button:hover { color: var(--ember) !important; }
+
+.popup {
+  font-family: 'IBM Plex Sans', sans-serif;
+  color: var(--ink);
+}
+.popup-banner {
+  background: linear-gradient(135deg, var(--ember) 0%, var(--ember-deep) 100%);
+  padding: 14px 16px 12px 16px;
+  border-radius: 6px 6px 0 0;
+  position: relative;
+  overflow: hidden;
+}
+.popup-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(0,0,0,0.07) 6px 7px);
+  pointer-events: none;
+}
+.popup-tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: rgba(255,255,255,0.88);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  position: relative;
+  z-index: 1;
+}
+.popup-station {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 0.05em;
+  color: #fff;
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+}
+.popup-body { padding: 14px 16px 16px 16px; }
+.popup-dept {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 12px;
+  line-height: 1.35;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--rule);
+}
+.popup-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.popup-row:last-of-type { margin-bottom: 0; }
+.popup-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  min-width: 64px;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+.popup-value { color: var(--ink); flex: 1; }
+.popup-value.coords { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--ink-dim); }
+
+.popup-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.popup-btn:hover {
+  background: var(--ember);
+  border-color: var(--ember);
+  color: #fff;
+  box-shadow: 0 0 0 1px var(--ember), 0 6px 16px rgba(210,59,28,0.4);
+}
+.popup-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 720px) {
+  .titlebar-row { padding: 10px 14px; }
+  .title { font-size: 18px; }
+  .eyebrow { font-size: 9px; }
+  .titlebar-body { padding: 12px 14px 12px 14px; gap: 16px; }
+  .titlebar-meta { padding: 8px 14px 9px 14px; font-size: 9.5px; }
+  .subtitle { font-size: 12px; flex-basis: 100%; }
+  .stats { gap: 16px; }
+  .stat-num { font-size: 24px; }
+  .leaflet-popup-content { width: 250px !important; }
+  .popup-station { font-size: 21px; }
+  .search-wrap { top: 64px; right: 10px; }
+  .titlebar:not(.collapsed) ~ .search-wrap { top: 64px; }
+  .search:focus-within, .search.open { width: min(280px, calc(100vw - 80px)); }
+  .search-results { width: min(280px, calc(100vw - 80px)); }
+}
+@media (max-width: 420px) {
+  .title { font-size: 16px; }
+  .titlebar { max-height: 320px; }
+  .titlebar.collapsed { max-height: 50px; }
+  .titlebar-row { height: 50px; }
+  .titlebar-meta { flex-direction: column; align-items: flex-start; gap: 4px; }
+}
+</style>
+</head>
+<body>
+
+<header class="titlebar" id="titlebar">
+  <div class="titlebar-row">
+    <div class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 2C12 2 6 8 6 13.5C6 17.6 8.7 21 12 21C15.3 21 18 17.6 18 13.5C18 11 16.5 9.5 15 8C13.5 6.5 13 5 13 3.5C13 3.5 11 5 11 7C11 8.5 12 10 12 10C12 10 10 9 9 7.5C8.5 9 9 11 10 12C10.5 12.5 11 13 11 14C11 15 10 16 10 16C10 16 12 15.5 13 14C14 12.5 14 11 14 11C14 11 15 12 15 13.5C15 15 14 16.5 12 17C13 17.5 14 18 14 19C14 19.5 13.5 20 13 20"/></svg>
+    </div>
+    <div class="title-block">
+      <span class="eyebrow">Trumbull County · Ohio</span>
+      <h1 class="title">Fire Station Directory</h1>
+    </div>
+    <button class="toggle-btn" id="toggleBtn" aria-label="Collapse header" aria-expanded="true">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 8 11 13 6"/>
+      </svg>
+    </button>
+  </div>
+  <div class="titlebar-body">
+    <p class="subtitle">An interactive directory of <strong>fire and emergency response stations</strong> serving Trumbull County. Hover any marker for a quick reference. Click for full station details and turn-by-turn directions.</p>
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-num" id="statCount">—</span>
+        <span class="stat-label">Stations</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num" id="statDepts">—</span>
+        <span class="stat-label">Departments</span>
+      </div>
+    </div>
+  </div>
+  <div class="titlebar-meta">
+    <span class="meta-author">Created by <strong>Mike Costarella</strong></span>
+    <span class="meta-time">Last updated <time datetime="2026-05-04T16:22:01-04:00">May 4, 2026 · 4:22 PM EDT</time></span>
+  </div>
+</header>
+
+<div class="search-wrap" id="searchWrap">
+  <div class="search" id="search" role="search">
+    <button class="search-icon" id="searchIcon" aria-label="Search stations" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+      </svg>
+    </button>
+    <input class="search-input" id="searchInput" type="search" autocomplete="off" spellcheck="false"
+           placeholder="Search stations, cities, addresses…" aria-label="Search stations">
+    <button class="search-clear" id="searchClear" aria-label="Clear search" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+        <path d="M6 6l12 12M18 6L6 18"/>
+      </svg>
+    </button>
+  </div>
+  <div class="search-results" id="searchResults" role="listbox" aria-label="Search results"></div>
+</div>
+
+<div id="map"></div>
+
+<script>
+const STATIONS = [{"Id": "51f0d278-2057-404e-83f9-a3e7453edc5e", "Department": "Bazetta Township Fire Department", "Station": "Station 11", "Address": "773 Everett Hull Road", "City": "Cortland", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44410, "Latitude": 41.330204, "Longitude": -80.793323}, {"Id": "c29b1487-cf30-473b-b59c-bed0c3d26d35", "Department": "Bazetta Township Fire Department", "Station": "Station 13", "Address": "2872 McCleary Jacoby Road", "City": "Cortland", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44410, "Latitude": 41.296908, "Longitude": -80.741285}, {"Id": "8e977c13-890c-41ea-9db3-cee4e900e60a", "Department": "Bloomfield Township Fire Department", "Station": "Main Station", "Address": "8870 Park Avenue", "City": "North Bloomfield", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44450, "Latitude": 41.479869, "Longitude": -80.810686}, {"Id": "1b46daab-a3d7-4b37-a77b-97175a4ca2f0", "Department": "Bloomfield Township Volunteer Fire Department", "Station": "Station 15", "Address": "8832 Park Drive", "City": "Orwell", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44076, "Latitude": 41.462479, "Longitude": -80.866425}, {"Id": "00f0e42d-0225-45cf-9484-c58fc8e5c58d", "Department": "Braceville Township Fire Department", "Station": "Station A", "Address": "800 Newton Falls Braceville Road", "City": "Newton Falls", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44444, "Latitude": 41.095028, "Longitude": -80.925156}, {"Id": "efc567f4-97b6-4dda-b239-82fd1176c14b", "Department": "Braceville Township Fire Department", "Station": "Station B", "Address": "582 Newton Falls Braceville Road", "City": "Newton Falls", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44444, "Latitude": 41.100197, "Longitude": -80.925174}, {"Id": "e42bca68-166d-45c3-a537-65e164a09ce3", "Department": "Bristol Fire Department", "Station": "Main Station", "Address": "1864 Greenville Road NW", "City": "Bristolville", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44402, "Latitude": 41.387262, "Longitude": -80.858382}, {"Id": "e8902de3-585a-4323-b235-9f9e6992262e", "Department": "Brookfield Township Fire Department", "Station": "Station 18", "Address": "774 Ohio 7", "City": "Brookfield Center", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44403, "Latitude": 41.221567, "Longitude": -80.568092}, {"Id": "2b860ec9-c150-4ce7-91f0-239d4528988d", "Department": "Burghill-Vernon Volunteer Fire Department", "Station": "Station 19", "Address": "6915 Ohio 88", "City": "Kinsman", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44428, "Latitude": 41.387182, "Longitude": -80.568532}, {"Id": "cbefdce6-94b7-4032-8a8b-b0a8467b8967", "Department": "Champion Township Fire Department", "Station": "Main Station", "Address": "5759 Mahoning Avenue NW", "City": "Warren", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44483, "Latitude": 41.309881, "Longitude": -80.850247}, {"Id": "360f77c1-6308-419e-9f2a-b5d546913b91", "Department": "Cortland City Fire Department", "Station": "Main Station", "Address": "400 N High Street", "City": "Cortland", "JurisdictionType": "City", "State": "OH", "ZipCode": 44410, "Latitude": 41.338256, "Longitude": -80.723489}, {"Id": "0980b948-4bde-4eac-bec6-04d8e23f2978", "Department": "Eagle Joint Fire District (Newton Falls)", "Station": "Main Station", "Address": "52 Quarry Street", "City": "Newton Falls", "JurisdictionType": "Joint District", "State": "OH", "ZipCode": 44444, "Latitude": 41.184518, "Longitude": -80.976928}, {"Id": "1c0cc671-fab4-4580-aab3-c7ef277a2232", "Department": "Farmington Township Volunteer Fire Department", "Station": "Main Station", "Address": "State Route 534", "City": "Farmington", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44491, "Latitude": 41.370456, "Longitude": -81.043183}, {"Id": "8604fe9e-7fb2-453a-a1bf-8ce78a627256", "Department": "Fowler Township Fire Department (Hartford)", "Station": "Main Station", "Address": "6959 Ohio 305", "City": "Fowler", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44418, "Latitude": 41.311701, "Longitude": -80.573912}, {"Id": "280b6cc7-a3eb-4e49-9f32-f8d8e2825cfe", "Department": "Girard Fire Department", "Station": "Main Station", "Address": "100 W Main Street", "City": "Girard", "JurisdictionType": "City", "State": "OH", "ZipCode": 44420, "Latitude": 41.155527, "Longitude": -80.703711}, {"Id": "c8bd4638-0b93-4266-93e2-6b65d0b0fd58", "Department": "Greene Township Volunteer Fire Department", "Station": "Main Station", "Address": "5500 Hoagland Blackstub Road", "City": "Cortland", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44410, "Latitude": 41.385849, "Longitude": -80.776856}, {"Id": "18e6d927-9307-46f8-9581-c526ac366372", "Department": "Gustavus Volunteer Fire Department", "Station": "Main Station", "Address": "4030 Route 87", "City": "Gustavus", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44491, "Latitude": 41.462099, "Longitude": -80.676451}, {"Id": "79df7134-456c-4956-af55-6a0d9f0d4dbc", "Department": "Hartford Township Volunteer Fire Department", "Station": "Main Station", "Address": "6959 Ohio 305", "City": "Fowler", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44418, "Latitude": 41.311701, "Longitude": -80.573912}, {"Id": "90cd5fcc-338e-430f-97ac-0312e1bfe177", "Department": "Howland Township Fire Department", "Station": "Station 30", "Address": "169 Niles Cortland Road NE", "City": "Warren", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44484, "Latitude": 41.239289, "Longitude": -80.740718}, {"Id": "568788be-5b2d-4d0b-963a-b81518db9cab", "Department": "Howland Township Fire Department", "Station": "Station 31", "Address": "3403 Ridge Road", "City": "Warren", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44484, "Latitude": 41.209231, "Longitude": -80.781418}, {"Id": "33b27689-14ce-4b02-8670-6d4d03d7defb", "Department": "Howland Township Fire Department", "Station": "Station 32", "Address": "2180 Wilson Avenue NE", "City": "Warren", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44484, "Latitude": 41.258466, "Longitude": -80.787903}, {"Id": "3436da4e-5dc1-4808-9acd-9a7308281803", "Department": "Hubbard Volunteer Fire Department", "Station": "Main Station", "Address": "33 W Liberty Street", "City": "Hubbard", "JurisdictionType": "City", "State": "OH", "ZipCode": 44425, "Latitude": 41.156272, "Longitude": -80.569797}, {"Id": "b9594d5e-146d-484e-973d-3699f11ee050", "Department": "Johnston Volunteer Fire Department", "Station": "Station 29", "Address": "4424 Greenville Road NE", "City": "Farmdale", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44417, "Latitude": 41.388656, "Longitude": -80.659748}, {"Id": "5f89c58b-1bf4-4fc6-a3e4-caaa2e6dc3e0", "Department": "Kinsman Volunteer Fire Department", "Station": "Main Station", "Address": "8450 Ridge Road", "City": "Kinsman", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44428, "Latitude": 41.451822, "Longitude": -80.586506}, {"Id": "e921233e-f58a-4a71-846d-4ed36212a0d4", "Department": "Liberty Township Fire Department", "Station": "Station 2", "Address": "5920 Belmont Avenue", "City": "Youngstown", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44505, "Latitude": 41.182229, "Longitude": -80.66458}, {"Id": "1fe2de33-de02-4a54-92cc-e9276fc00b1d", "Department": "Liberty Township Fire Department", "Station": "Station 35", "Address": "4001 Logan Way", "City": "Youngstown", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44505, "Latitude": 41.154915, "Longitude": -80.631608}, {"Id": "8187ae27-163b-419d-b425-f334447fb2c9", "Department": "Lordstown Village Fire Department", "Station": "Main Station", "Address": "1595 Salt Springs Road", "City": "Warren", "JurisdictionType": "Village", "State": "OH", "ZipCode": 44481, "Latitude": 41.165779, "Longitude": -80.854937}, {"Id": "7cd25c20-ece5-45dd-a41f-f7335310cfc5", "Department": "McDonald Fire Department", "Station": "Main Station", "Address": "451 Ohio Avenue", "City": "McDonald", "JurisdictionType": "Village", "State": "OH", "ZipCode": 44437, "Latitude": 41.163543, "Longitude": -80.723552}, {"Id": "c38fb304-000d-4c75-b056-dd34b4f3a00b", "Department": "Mecca Township Volunteer Fire Department", "Station": "Main Station", "Address": "1100 State Route 46", "City": "Cortland", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44410, "Latitude": 41.290967, "Longitude": -80.866245}, {"Id": "d76fc75a-286e-40fa-9624-f173b0d6711a", "Department": "Mesopotamia Fire Department", "Station": "Main Station", "Address": "8584 State Route 534", "City": "Mesopotamia", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44439, "Latitude": 41.448554, "Longitude": -80.955108}, {"Id": "3cc0867f-4529-4baf-9046-34150055e588", "Department": "Newton Falls Joint Fire District", "Station": "Main Station", "Address": "52 Quarry Street", "City": "Newton Falls", "JurisdictionType": "Joint District", "State": "OH", "ZipCode": 44444, "Latitude": 41.184518, "Longitude": -80.976928}, {"Id": "e4c48a6c-ffb2-4576-9263-f8ab169edfe6", "Department": "Niles Fire Department", "Station": "Station 7", "Address": "15 East State Street SE", "City": "Niles", "JurisdictionType": "City", "State": "OH", "ZipCode": 44446, "Latitude": 41.178972, "Longitude": -80.764371}, {"Id": "f1c3e748-cd23-46b2-b9e7-39a53a680117", "Department": "Niles Fire Department", "Station": "Station 8", "Address": "1235 Niles Cortland Road", "City": "Niles", "JurisdictionType": "City", "State": "OH", "ZipCode": 44446, "Latitude": 41.197129, "Longitude": -80.746324}, {"Id": "93078539-fa01-412b-87cc-f6d983dd61f5", "Department": "Orangeville Volunteer Fire Department", "Station": "Main Station", "Address": "5985 Orangeville Kinsman Road", "City": "Orangeville", "JurisdictionType": "Village", "State": "OH", "ZipCode": 44453, "Latitude": 41.32519, "Longitude": -80.533572}, {"Id": "7f2dd991-09e4-46f0-9e2b-e03b6ba13caf", "Department": "Southington Volunteer Fire Department", "Station": "Main Station", "Address": "4361 Ohio 305", "City": "Southington", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44470, "Latitude": 41.308585, "Longitude": -80.94824}, {"Id": "1aa1373d-95e0-40a5-b75b-69285b62995a", "Department": "Vienna Township Fire Department", "Station": "Main Station", "Address": "833 Youngstown Kingsville Road", "City": "Vienna Center", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44473, "Latitude": 41.24033, "Longitude": -80.663968}, {"Id": "5624c57f-13af-48fa-8e7f-8e17421ec673", "Department": "Warren City Fire Department", "Station": "Station 1", "Address": "111 South Street SE", "City": "Warren", "JurisdictionType": "City", "State": "OH", "ZipCode": 44483, "Latitude": 41.234207, "Longitude": -80.817652}, {"Id": "1db17c62-d16b-4242-84fd-991834e295a8", "Department": "Warren City Fire Department", "Station": "Atlantic Street Station", "Address": "1600 Atlantic Street NE", "City": "Warren", "JurisdictionType": "City", "State": "OH", "ZipCode": 44483, "Latitude": 41.245846, "Longitude": -80.795407}, {"Id": "22c35c52-9c77-478b-8233-9e8906d948db", "Department": "Warren City Fire Department", "Station": "Parkman Road Station", "Address": "2454 Parkman Road NW", "City": "Warren", "JurisdictionType": "City", "State": "OH", "ZipCode": 44485, "Latitude": 41.251459, "Longitude": -80.854213}, {"Id": "84346049-a63b-4358-af41-9c7d34a3169e", "Department": "Warren Township Fire Department", "Station": "Station 3", "Address": "979 Dover Avenue SW", "City": "Warren", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44485, "Latitude": 41.2153, "Longitude": -80.831414}, {"Id": "32df2161-2576-4b30-b331-8ed3e49c8edd", "Department": "Warren Township Fire Department", "Station": "Station 47", "Address": "4750 West Market Street", "City": "Leavittsburg", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44430, "Latitude": 41.240025, "Longitude": -80.878082}, {"Id": "10424640-ef8b-4e80-a9cd-ecd524f13e1c", "Department": "Weathersfield Township Fire Rescue", "Station": "Main Station", "Address": "1451 Prospect Street", "City": "Mineral Ridge", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44440, "Latitude": 41.148618, "Longitude": -80.76715}, {"Id": "f151af7e-46ef-4ec0-9067-bbd5c53458f0", "Department": "Weathersfield Township Volunteer Fire Department", "Station": "Station 40 - McKinley Heights", "Address": "2229 Gardenland Avenue", "City": "Niles", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44446, "Latitude": 41.182973, "Longitude": -80.717062}, {"Id": "317b3f2d-7865-44a2-ad9c-40e521ae752c", "Department": "Weathersfield Township Volunteer Fire Department", "Station": "Station 42 - West Park", "Address": "1382 West Park Avenue", "City": "Niles", "JurisdictionType": "Township", "State": "OH", "ZipCode": 44446, "Latitude": 41.181236, "Longitude": -80.793163}, {"Id": "81a74f9d-b1b6-4782-a095-1a7f8d7fa30f", "Department": "910th Airlift Wing Fire Department", "Station": "YARS Base", "Address": "3976 King Graves Road", "City": "Vienna", "JurisdictionType": "Federal/Military", "State": "OH", "ZipCode": 44473, "Latitude": 41.272061, "Longitude": -80.676419}];
+
+// ----- Title bar collapse -----
+const titlebar = document.getElementById('titlebar');
+const toggleBtn = document.getElementById('toggleBtn');
+function setCollapsed(c) {
+  titlebar.classList.toggle('collapsed', c);
+  toggleBtn.setAttribute('aria-expanded', String(!c));
+  toggleBtn.setAttribute('aria-label', c ? 'Expand header' : 'Collapse header');
+  setTimeout(() => { if (window.__map) window.__map.invalidateSize(); }, 460);
+}
+toggleBtn.addEventListener('click', () => setCollapsed(!titlebar.classList.contains('collapsed')));
+if (window.matchMedia('(max-width: 720px)').matches) setCollapsed(true);
+
+// ----- Stats -----
+document.getElementById('statCount').textContent = STATIONS.length;
+document.getElementById('statDepts').textContent = new Set(STATIONS.map(s => s.Department)).size;
+
+// ----- Map -----
+const map = L.map('map', { zoomControl: true, attributionControl: true });
+window.__map = map;
+L.control.attribution({ prefix: false }).addTo(map);
+
+// CARTO Voyager — clean, daytime basemap with subtle warm tones
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 19
+}).addTo(map);
+
+// ----- Custom marker icon (SVG fire-station shield + flame) -----
+const markerSvg = `
+<svg viewBox="0 0 36 44" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff6a3d"/>
+      <stop offset="100%" stop-color="#a32a10"/>
+    </linearGradient>
+  </defs>
+  <path d="M18 0 C8 0 1 7 1 16 C1 27 18 44 18 44 C18 44 35 27 35 16 C35 7 28 0 18 0 Z"
+        fill="url(#g)" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="18" cy="16" r="10" fill="#1a1614" opacity="0.25"/>
+  <path d="M18 8 C18 8 14.5 11 14.5 14.5 C14.5 17 16 18.5 18 18.5 C20 18.5 21.5 17 21.5 14.5 C21.5 13 20.5 12 19.5 11 C18.7 10.2 18.5 9.5 18.5 8.5 C18.5 8.5 17.7 9.2 17.7 10 C17.7 10.7 18 11.4 18 11.4 C18 11.4 17 10.8 16.5 10 C16.3 10.7 16.5 11.5 17 12 C17.3 12.3 17.5 12.6 17.5 13 C17.5 13.5 17 14 17 14 C17 14 18 13.7 18.5 13 C19 12.3 19 11.5 19 11.5 C19 11.5 19.5 12.2 19.5 13 C19.5 13.7 19 14.3 18 14.5 C18.5 14.7 19 15 19 15.4"
+        fill="#fff"/>
+</svg>`;
+
+const stationIcon = L.divIcon({
+  className: 'station-marker',
+  html: markerSvg,
+  iconSize: [36, 44],
+  iconAnchor: [18, 44],
+  tooltipAnchor: [0, -38],
+  popupAnchor: [0, -42]
+});
+
+// ----- Helpers -----
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+function gmapsUrl(s) {
+  const q = `${s.Address}, ${s.City}, ${s.State} ${s.ZipCode}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+}
+
+const popupBtnSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+
+function tooltipHtml(s) {
+  return `<div class="tooltip-dept">${escapeHtml(s.Department)}</div>
+          <div class="tooltip-station">${escapeHtml(s.Station)} · ${escapeHtml(s.City)}</div>`;
+}
+
+function popupHtml(s) {
+  return `
+  <div class="popup">
+    <div class="popup-banner">
+      <div class="popup-tag">${escapeHtml(s.JurisdictionType)} Jurisdiction</div>
+      <div class="popup-station">${escapeHtml(s.Station)}</div>
+    </div>
+    <div class="popup-body">
+      <div class="popup-dept">${escapeHtml(s.Department)}</div>
+      <div class="popup-row">
+        <span class="popup-label">Address</span>
+        <span class="popup-value">${escapeHtml(s.Address)}<br>${escapeHtml(s.City)}, ${escapeHtml(s.State)} ${escapeHtml(String(s.ZipCode))}</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-label">Coords</span>
+        <span class="popup-value coords">${s.Latitude.toFixed(5)}, ${s.Longitude.toFixed(5)}</span>
+      </div>
+      <a class="popup-btn" href="${gmapsUrl(s)}" target="_blank" rel="noopener noreferrer">
+        ${popupBtnSvg}
+        <span>Open in Google Maps</span>
+      </a>
+    </div>
+  </div>`;
+}
+
+// ----- Plot markers -----
+const bounds = [];
+const markersById = {};
+STATIONS.forEach(s => {
+  const m = L.marker([s.Latitude, s.Longitude], { icon: stationIcon, riseOnHover: true })
+    .addTo(map)
+    .bindTooltip(tooltipHtml(s), {
+      className: 'station-tooltip',
+      direction: 'top',
+      offset: [0, -4],
+      opacity: 1
+    })
+    .bindPopup(popupHtml(s), {
+      maxWidth: 290,
+      minWidth: 290,
+      closeButton: true,
+      autoPanPadding: [40, 80]
+    });
+  markersById[s.Id] = m;
+  bounds.push([s.Latitude, s.Longitude]);
+});
+
+map.fitBounds(bounds, { padding: [60, 40] });
+
+// ----- Search -----
+const searchEl = document.getElementById('search');
+const searchInput = document.getElementById('searchInput');
+const searchIcon = document.getElementById('searchIcon');
+const searchClear = document.getElementById('searchClear');
+const resultsEl = document.getElementById('searchResults');
+
+function highlight(text, q) {
+  if (!q) return escapeHtml(text);
+  const safe = escapeHtml(text);
+  const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+  return safe.replace(re, '<mark>$1</mark>');
+}
+
+function runSearch(q) {
+  q = q.trim();
+  searchEl.classList.toggle('has-value', q.length > 0);
+  if (!q) { resultsEl.classList.remove('open'); resultsEl.innerHTML = ''; return; }
+  const ql = q.toLowerCase();
+  const matches = STATIONS.filter(s =>
+    s.Department.toLowerCase().includes(ql) ||
+    s.Station.toLowerCase().includes(ql) ||
+    s.Address.toLowerCase().includes(ql) ||
+    s.City.toLowerCase().includes(ql) ||
+    String(s.ZipCode).includes(ql) ||
+    s.JurisdictionType.toLowerCase().includes(ql)
+  ).slice(0, 30);
+
+  if (matches.length === 0) {
+    resultsEl.innerHTML = '<div class="result-empty">No stations match "' + escapeHtml(q) + '"</div>';
+  } else {
+    const header = '<div class="result-meta">' + matches.length + ' match' + (matches.length === 1 ? '' : 'es') + '</div>';
+    const items = matches.map(s => `
+      <button class="result-item" data-id="${escapeHtml(s.Id)}" role="option">
+        <div class="result-station">${highlight(s.Station, q)}</div>
+        <div class="result-dept">${highlight(s.Department, q)}</div>
+        <div class="result-addr">${highlight(s.Address + ', ' + s.City, q)}</div>
+      </button>
+    `).join('');
+    resultsEl.innerHTML = header + items;
+  }
+  resultsEl.classList.add('open');
+}
+
+function selectStation(id) {
+  const m = markersById[id];
+  if (!m) return;
+  resultsEl.classList.remove('open');
+  const ll = m.getLatLng();
+  map.flyTo(ll, Math.max(map.getZoom(), 14), { duration: 0.6 });
+  setTimeout(() => m.openPopup(), 650);
+}
+
+searchInput.addEventListener('input', e => runSearch(e.target.value));
+searchInput.addEventListener('focus', () => {
+  searchEl.classList.add('open');
+  if (searchInput.value.trim()) runSearch(searchInput.value);
+});
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { searchInput.value = ''; runSearch(''); searchInput.blur(); searchEl.classList.remove('open'); }
+  else if (e.key === 'Enter') {
+    const first = resultsEl.querySelector('.result-item');
+    if (first) selectStation(first.dataset.id);
+  } else if (e.key === 'ArrowDown') {
+    const first = resultsEl.querySelector('.result-item');
+    if (first) { e.preventDefault(); first.focus(); }
+  }
+});
+searchIcon.addEventListener('click', () => { searchEl.classList.add('open'); searchInput.focus(); });
+searchClear.addEventListener('click', () => { searchInput.value = ''; runSearch(''); searchInput.focus(); });
+
+resultsEl.addEventListener('click', e => {
+  const btn = e.target.closest('.result-item');
+  if (btn) selectStation(btn.dataset.id);
+});
+resultsEl.addEventListener('keydown', e => {
+  const items = Array.from(resultsEl.querySelectorAll('.result-item'));
+  const idx = items.indexOf(document.activeElement);
+  if (e.key === 'ArrowDown' && idx < items.length - 1) { e.preventDefault(); items[idx + 1].focus(); }
+  else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (idx <= 0) searchInput.focus();
+    else items[idx - 1].focus();
+  } else if (e.key === 'Enter' && idx >= 0) selectStation(items[idx].dataset.id);
+  else if (e.key === 'Escape') { searchInput.focus(); resultsEl.classList.remove('open'); }
+});
+
+// Close search panel on outside click; collapse pill on mobile
+document.addEventListener('click', e => {
+  if (!searchEl.contains(e.target) && !resultsEl.contains(e.target)) {
+    resultsEl.classList.remove('open');
+    if (!searchInput.value.trim()) searchEl.classList.remove('open');
+  }
+});
+</script>
+</body>
+</html>
