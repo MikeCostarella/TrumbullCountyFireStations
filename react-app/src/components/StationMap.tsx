@@ -4,6 +4,7 @@ import L from 'leaflet';
 import type { Station } from '../types/station';
 import { gmapsUrl } from '../lib';
 import YouAreHere from './YouAreHere';
+import type { Jurisdiction } from '../geo';
 
 // ---- Custom marker icon (SVG shield + flame), ported from the prototype ----
 const markerSvg = `
@@ -67,6 +68,7 @@ interface Props {
   registerMap: (map: L.Map) => void;
   onHeaderInvalidate?: number;
   youPosition: { lat: number; lon: number } | null;
+  youJurisdiction: Jurisdiction | null;
   youFlyTick: number;
 }
 
@@ -76,6 +78,7 @@ export default function StationMap({
   registerMap,
   onHeaderInvalidate,
   youPosition,
+  youJurisdiction,
   youFlyTick,
 }: Props) {
   const mapRef = useRef<L.Map | null>(null);
@@ -108,7 +111,7 @@ export default function StationMap({
           registerMap(m);
         }}
       />
-      <YouAreHere position={youPosition} flyTick={youFlyTick} />
+      <YouAreHere position={youPosition} jurisdiction={youJurisdiction} flyTick={youFlyTick} />
       {stations.map((s) => (
         <Marker
           key={s.Id}

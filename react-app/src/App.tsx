@@ -74,6 +74,7 @@ export default function App() {
 
   // Only show the marker when the user is inside the county.
   const youPosition = geo.status === 'inside' ? geo.position : null;
+  const youJurisdiction = geo.status === 'inside' ? geo.jurisdiction : null;
 
   return (
     <div className="app-shell">
@@ -95,6 +96,7 @@ export default function App() {
             registerMap={registerMap}
             onHeaderInvalidate={invalidateTick}
             youPosition={youPosition}
+            youJurisdiction={youJurisdiction}
             youFlyTick={youFlyTick}
           />
         </div>

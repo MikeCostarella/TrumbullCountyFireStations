@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import { isInTrumbullCounty } from './geo';
+import { isInTrumbullCounty, jurisdictionAt } from './geo';
+import type { Jurisdiction } from './geo';
 
 export type LocateStatus =
   | 'idle'
@@ -12,10 +13,15 @@ export type LocateStatus =
 export interface LocateState {
   status: LocateStatus;
   position: { lat: number; lon: number } | null;
+  jurisdiction: Jurisdiction | null;
 }
 
 export function useGeolocation() {
-  const [state, setState] = useState<LocateState>({ status: 'idle', position: null });
+  const [state, setState] = useState<LocateState>({
+    status: 'idle',
+    position: null,
+    jurisdiction: null,
+  });
   // Guard so an auto-attempt only fires once.
   const attempted = useRef(false);
 
@@ -25,7 +31,7 @@ export function useGeolocation() {
       attempted.current = true;
     }
     if (!('geolocation' in navigator)) {
-      setState({ status: 'error', position: null });
+      setState({ status: 'error', position: null, jurisdiction: null });
       return;
     }
     setState((s) => ({ ...s, status: 'locating' }));
@@ -34,12 +40,17 @@ export function useGeolocation() {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
         const inside = isInTrumbullCounty(lat, lon);
-        setState({ status: inside ? 'inside' : 'outside', position: { lat, lon } });
+        setState({
+          status: inside ? 'inside' : 'outside',
+          position: { lat, lon },
+          jurisdiction: inside ? jurisdictionAt(lat, lon) : null,
+        });
       },
       (err) => {
         setState({
           status: err.code === err.PERMISSION_DENIED ? 'denied' : 'error',
           position: null,
+          jurisdiction: null,
         });
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
