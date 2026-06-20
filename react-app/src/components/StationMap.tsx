@@ -5,6 +5,7 @@ import type { Station } from '../types/station';
 import { gmapsUrl } from '../lib';
 import YouAreHere from './YouAreHere';
 import type { Jurisdiction } from '../geo';
+import { jurisdictionAt } from '../geo';
 import BoundaryLayers from './BoundaryLayers';
 import type { LayerState } from './MapLayersControl';
 
@@ -144,6 +145,15 @@ export default function StationMap({
               </div>
               <div className="popup-body">
                 <div className="popup-dept">{s.Department}</div>
+                <div className="popup-row">
+                  <span className="popup-label">Jurisdiction</span>
+                  <span className="popup-value">
+                    {(() => {
+                      const j = jurisdictionAt(s.Latitude, s.Longitude);
+                      return j.type && j.type !== 'County' ? `${j.name} (${j.type})` : j.name;
+                    })()}
+                  </span>
+                </div>
                 <div className="popup-row">
                   <span className="popup-label">Address</span>
                   <span className="popup-value">
