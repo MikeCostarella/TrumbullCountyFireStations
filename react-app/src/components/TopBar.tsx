@@ -15,6 +15,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const REPO_URL = 'https://github.com/MikeCostarella/TrumbullCountyFireStations';
+const MY_WEBSITE_URL = 'https://mikecostarella.github.io/MyWebSite/';
 
 interface Props {
   active: ViewId;
@@ -118,6 +119,12 @@ export default function TopBar({ active, onSelect, open, onToggle, layers, onLay
 
         <div className="drawer-group">
           <div className="drawer-group-title">Source</div>
+          <a href={MY_WEBSITE_URL} target="_blank" rel="noopener noreferrer" className="drawer-item drawer-repo">
+            <span className="drawer-item-label">
+              MyWebSite <span className="drawer-ext" aria-hidden="true">↗</span>
+            </span>
+            <span className="drawer-item-hint">Mike Costarella&rsquo;s website</span>
+          </a>
           <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="drawer-item drawer-repo">
             <span className="drawer-item-label">
               GitHub repository <span className="drawer-ext" aria-hidden="true">↗</span>
