@@ -118,7 +118,7 @@ export default function TopBar({ active, onSelect, open, onToggle, layers, onLay
         </div>
 
         <div className="drawer-group">
-          <div className="drawer-group-title">Source</div>
+          <div className="drawer-group-title">Links</div>
           <a href={MY_WEBSITE_URL} target="_blank" rel="noopener noreferrer" className="drawer-item drawer-repo">
             <span className="drawer-item-label">
               MyWebSite <span className="drawer-ext" aria-hidden="true">↗</span>
