@@ -131,6 +131,12 @@ export default function TopBar({ active, onSelect, open, onToggle, layers, onLay
             </span>
             <span className="drawer-item-hint">View the source on GitHub</span>
           </a>
+          <a href={`${REPO_URL}/actions`} target="_blank" rel="noopener noreferrer" className="drawer-item drawer-repo">
+            <span className="drawer-item-label">
+              GitHub Actions <span className="drawer-ext" aria-hidden="true">↗</span>
+            </span>
+            <span className="drawer-item-hint">View the source on GitHub</span>
+          </a>
         </div>
       </nav>
     </div>
