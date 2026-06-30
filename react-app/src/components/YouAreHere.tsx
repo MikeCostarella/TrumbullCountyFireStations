@@ -22,6 +22,14 @@ function gmapsUrl(lat: number, lon: number): string {
   return `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
 }
 
+// Trumbull County extent (WGS84), used to decide how to frame the locate fly:
+// inside the county we zoom in close; outside it we only zoom far enough to show
+// the whole county alongside the user's position.
+const COUNTY_BOUNDS = { south: 41.10, west: -81.01, north: 41.36, east: -80.51 };
+// Closest zoom used when framing an out-of-county user with the whole county in
+// view (keeps the county from filling the screen for a user just over the line).
+const OUT_OF_COUNTY_MAX_ZOOM = 11;
+
 interface Props {
   position: { lat: number; lon: number } | null;
   jurisdiction: Jurisdiction | null;
@@ -33,7 +41,28 @@ export default function YouAreHere({ position, jurisdiction, flyTick }: Props) {
 
   useEffect(() => {
     if (position) {
-      map.flyTo([position.lat, position.lon], Math.max(map.getZoom(), 13), { duration: 0.6 });
+      const { lat, lon } = position;
+      const inCounty =
+        lat >= COUNTY_BOUNDS.south &&
+        lat <= COUNTY_BOUNDS.north &&
+        lon >= COUNTY_BOUNDS.west &&
+        lon <= COUNTY_BOUNDS.east;
+      if (inCounty) {
+        // User is in Trumbull County — zoom in close to their location.
+        map.flyTo([lat, lon], Math.max(map.getZoom(), 13), { duration: 0.6 });
+      } else {
+        // User is outside the county — frame the whole county together with the
+        // user's position so Trumbull County stays visible.
+        const bounds = L.latLngBounds(
+          [COUNTY_BOUNDS.south, COUNTY_BOUNDS.west],
+          [COUNTY_BOUNDS.north, COUNTY_BOUNDS.east],
+        ).extend([lat, lon]);
+        map.flyToBounds(bounds, {
+          padding: [40, 40],
+          maxZoom: OUT_OF_COUNTY_MAX_ZOOM,
+          duration: 0.6,
+        });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flyTick]);

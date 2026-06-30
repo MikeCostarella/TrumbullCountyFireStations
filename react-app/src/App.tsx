@@ -40,9 +40,11 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // When a position fix lands inside the county, fly to it.
+  // When a position fix lands (inside or outside the county), fly to it. Inside
+  // the county we zoom in on the user; outside we frame the whole county
+  // together with the user's position (handled in YouAreHere).
   useEffect(() => {
-    if (geo.status === 'inside' && geo.position) {
+    if ((geo.status === 'inside' || geo.status === 'outside') && geo.position) {
       setView('map');
       setYouFlyTick((t) => t + 1);
     }
@@ -74,8 +76,10 @@ export default function App() {
     geo.locate();
   }
 
-  // Only show the marker when the user is inside the county.
-  const youPosition = geo.status === 'inside' ? geo.position : null;
+  // Show the marker whenever we have a fix (inside or outside the county). When
+  // outside, jurisdiction is null and YouAreHere frames the whole county.
+  const youPosition =
+    geo.status === 'inside' || geo.status === 'outside' ? geo.position : null;
   const youJurisdiction = geo.status === 'inside' ? geo.jurisdiction : null;
 
   return (
