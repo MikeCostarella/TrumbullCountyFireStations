@@ -1,6 +1,6 @@
 import countyData from './data/trumbull-boundary.json';
 // Optional jurisdiction layers (municipalities + townships). These files are
-// added by you (from THAM/Hydrants/AddressPoints). If absent, jurisdiction
+// added by you (from THAM/TrumbullCountyHydrants/AddressPoints). If absent, jurisdiction
 // resolution falls back to the county name. See data/README-boundaries.md.
 import jurisdictionsData from './data/trumbull-jurisdictions.json';
 
